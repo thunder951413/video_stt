@@ -64,3 +64,4 @@ Thumbs.db
 
 # Trae specific
 -.info.json
+data/
