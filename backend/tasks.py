@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any, List
 from .models import CreateTaskRequest, TaskStatusResponse
 from . import bili_downloader
 from . import xiaoyuzhou_downloader
+from . import douyin_downloader
 from .whispercpp import ensure_whispercpp, transcribe
 from .text_format import format_segments
 from .contexts import upsert_context
@@ -171,6 +172,10 @@ def _run_task(task_id: str, req: CreateTaskRequest, lock: threading.Lock) -> Non
                 source_id = info.get("id") or info.get("episode_id")
                 # Try to extract show notes for podcasts
                 show_notes = xiaoyuzhou_downloader.extract_show_notes(req.url)
+            elif platform == "douyin":
+                info = douyin_downloader.probe_info(req.url, cookies_from_browser=req.cookies_from_browser)
+                title = info.get("title")
+                source_id = info.get("id")
             else:
                 raise ValueError(f"Unsupported platform: {platform}")
 
@@ -203,6 +208,14 @@ def _run_task(task_id: str, req: CreateTaskRequest, lock: threading.Lock) -> Non
                 xiaoyuzhou_downloader.download(
                     url=req.url,
                     out_dir=download_dir,
+                    cookies_from_browser=req.cookies_from_browser,
+                )
+            elif platform == "douyin":
+                douyin_downloader.download(
+                    url=req.url,
+                    out_dir=download_dir,
+                    download_mode=req.download_mode,
+                    parts_mode=req.parts_mode,
                     cookies_from_browser=req.cookies_from_browser,
                 )
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Literal, Optional, Dict, Any
 
 
-Platform = Literal["bilibili", "xiaoyuzhou"]
+Platform = Literal["bilibili", "xiaoyuzhou", "douyin"]
 DownloadMode = Literal["audio", "video"]
 PartsMode = Literal["all", "p1"]
 WhisperModel = Literal["tiny", "base", "small", "medium", "large-v3"]

@@ -9,6 +9,7 @@
 - **多平台支持**
   - Bilibili 视频下载与转写
   - 小宇宙播客下载与转写
+  - 抖音视频下载与转写
   - 支持 UP 主空间视频列表获取
 
 - **灵活的下载选项**
@@ -99,18 +100,61 @@ python3 -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 
 ### 浏览器 Cookie
 
-对于需要登录的 Bilibili 视频，可以配置 `cookies_from_browser`：
+对于需要登录的视频，可以配置 `cookies_from_browser`：
 
 - `brave` - Brave 浏览器
 - `chrome` - Chrome 浏览器
 - `firefox` - Firefox 浏览器
 - `safari` - Safari 浏览器（macOS）
 
+### 抖音视频链接格式
+
+抖音视频支持多种链接格式，工具会自动处理转换：
+
+**支持的格式：**
+1. **标准视频页面**：`https://www.douyin.com/video/视频ID`
+2. **短链接**：`https://v.douyin.com/随机字符/`（从App分享获得）
+3. **分享链接**：`https://www.iesdouyin.com/share/video/视频ID/`
+4. **非标准页面**（自动转换）：
+   - 精选页面：`https://www.douyin.com/jingxuan?modal_id=视频ID`
+   - 用户主页：`https://www.douyin.com/user/...?modal_id=视频ID&...`
+   - 点赞页面：`https://www.douyin.com/user/self?modal_id=视频ID&showTab=like`
+   - 发布页面：`https://www.douyin.com/user/...?modal_id=视频ID&showTab=post`
+   - 任意页面：`https://www.douyin.com/任意路径?modal_id=视频ID`
+
+**自动转换规则：**
+- 检测URL中的`modal_id`参数
+- 自动转换为标准视频链接：`https://www.douyin.com/video/视频ID`
+- 支持各种抖音页面格式
+
+**常见问题解决：**
+
+1. **"不支持的URL格式"错误**：
+   - 确保URL包含`modal_id=视频ID`参数
+   - 或使用抖音App分享的短链接
+
+2. **"需要登录/Cookie"错误**：
+   - 在浏览器中打开抖音网站 (https://www.douyin.com) 并登录您的账号
+   - 返回工具，在"Cookies 来源（浏览器）"输入框中选择对应的浏览器类型（如chrome、brave、firefox）
+   - 确保登录状态有效（Cookie未过期）
+   - 如果仍然失败，尝试使用抖音App分享的短链接
+   - 确保视频是公开可见的（非私密视频）
+
+3. **"视频不可访问"错误**：
+   - 视频可能被删除或设为私密
+   - 检查视频是否公开可见
+   - 尝试使用其他视频链接
+
+**最佳实践：**
+1. 使用抖音App分享功能获取短链接（最可靠）
+2. 确保已登录抖音并配置浏览器Cookie
+3. 优先使用公开可见的视频
+
 ## 📖 使用指南
 
 ### 转写视频
 
-1. 在左侧输入视频 URL（Bilibili 或小宇宙）
+1. 在左侧输入视频 URL（Bilibili、小宇宙或抖音）
 2. 选择平台和下载选项
 3. 选择 whisper 模型（推荐 medium 平衡速度与准确度）
 4. 点击"创建任务"
@@ -142,6 +186,7 @@ bilibili_summarizer/
 │   ├── tasks.py         # 任务管理
 │   ├── bili_downloader.py    # Bilibili 下载器
 │   ├── xiaoyuzhou_downloader.py  # 小宇宙下载器
+│   ├── douyin_downloader.py  # 抖音下载器
 │   ├── whispercpp.py    # 语音识别
 │   ├── llm_api.py       # LLM API 接口
 │   └── ...
@@ -180,9 +225,10 @@ bilibili_summarizer/
 ## ⚠️ 注意事项
 
 1. **版权问题**：请确保你有权下载和转写目标视频内容
-2. **Cookie 使用**：使用浏览器 Cookie 时请遵守 Bilibili 的使用条款
-3. **模型大小**：更大的模型（如 large-v3）准确度更高但需要更多内存和计算时间
-4. **存储空间**：视频文件会占用较多磁盘空间，建议定期清理 `data/` 目录
+2. **Cookie 使用**：使用浏览器 Cookie 时请遵守各平台的使用条款（Bilibili、抖音等）
+3. **抖音限制**：抖音视频可能需要登录才能下载高清版本，建议配置浏览器Cookie
+4. **模型大小**：更大的模型（如 large-v3）准确度更高但需要更多内存和计算时间
+5. **存储空间**：视频文件会占用较多磁盘空间，建议定期清理 `data/` 目录
 
 ## 🤝 贡献
 

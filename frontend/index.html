@@ -110,6 +110,22 @@
       border-color: var(--accent);
     }
 
+    /* Platform tips */
+    .platform-tips {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #856404;
+      line-height: 1.4;
+    }
+
+    .platform-tips strong {
+      color: #856404;
+    }
+
     .toggle-btn {
       border: none;
       background: transparent;
@@ -599,6 +615,7 @@
             <select id="platform_select">
               <option value="bilibili">Bilibili</option>
               <option value="xiaoyuzhou">小宇宙</option>
+              <option value="douyin">抖音</option>
             </select>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
@@ -631,6 +648,9 @@
   链接：
   <input id="url" type="text" placeholder="https://www.bilibili.com/video/BV..." />
 </label>
+<div id="platform_tips" class="platform-tips" style="display: none; margin-top: 8px; padding: 8px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; font-size: 13px; color: #856404;">
+  <strong>提示：</strong><span id="platform_tips_text"></span>
+</div>
 
 <div class="row">
   <label><input type="radio" name="download_mode" value="audio" checked> 只下载音频并转写</label>
@@ -1257,6 +1277,7 @@
         placeholder: 'https://www.bilibili.com/video/BV...',
         supportsVideo: true,
         supportsParts: true,
+        tips: '部分B站视频可能需要登录才能下载高清版本',
       },
       xiaoyuzhou: {
         name: '小宇宙',
@@ -1264,6 +1285,15 @@
         placeholder: 'https://www.xiaoyuzhoufm.com/episode/...',
         supportsVideo: false,
         supportsParts: false,
+        tips: '小宇宙播客通常可以直接下载，无需登录',
+      },
+      douyin: {
+        name: '抖音',
+        urlLabel: '抖音链接：',
+        placeholder: 'https://www.douyin.com/video/... 或 https://v.douyin.com/...',
+        supportsVideo: true,
+        supportsParts: true,  // 抖音支持合集，可以控制是否只下载第一个
+        tips: '抖音需要登录才能下载。请先确保在浏览器中登录抖音网站 (https://www.douyin.com)。支持多种链接格式：视频页面、短链接、精选页面、用户主页等（自动转换）。请在下方选择浏览器类型获取Cookie。',
       },
     };
 
@@ -1274,6 +1304,16 @@
       // Update URL label and placeholder
       urlLabel.childNodes[0].textContent = config.urlLabel;
       urlInput.placeholder = config.placeholder;
+
+      // Update platform tips
+      const tipsElement = document.getElementById('platform_tips');
+      const tipsTextElement = document.getElementById('platform_tips_text');
+      if (config.tips) {
+        tipsTextElement.textContent = config.tips;
+        tipsElement.style.display = 'block';
+      } else {
+        tipsElement.style.display = 'none';
+      }
 
       // Update download mode visibility
       const downloadModeRow = document.querySelector('input[name="download_mode"]').closest('.row');
