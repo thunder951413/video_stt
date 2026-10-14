@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from typing import Literal, Optional, Dict, Any
+from typing import Literal, Optional, Dict, Any, List
 
 
 Platform = Literal["bilibili", "xiaoyuzhou", "douyin"]
@@ -24,6 +24,24 @@ class CreateTaskRequest(BaseModel):
     whisper_model: WhisperModel = Field("medium", description="whisper.cpp model")
     language: Optional[str] = Field("zh", description="language hint")
     output_format: OutputFormat = Field("A", description="A: with timestamp, B: without timestamp")
+
+
+class BatchCreateTaskRequest(BaseModel):
+    """批量创建任务请求"""
+    urls: List[str] = Field(..., description="视频链接列表")
+    platform: Platform = Field("douyin", description="Source platform")
+    download_mode: DownloadMode = Field("audio", description="audio: only audio; video: download full video")
+    parts_mode: PartsMode = Field("all", description="all: all pages; p1: only first page")
+    cookies_from_browser: Optional[str] = Field("brave", description="Browser for cookies")
+    whisper_model: WhisperModel = Field("medium", description="whisper.cpp model")
+    language: Optional[str] = Field("zh", description="language hint")
+    output_format: OutputFormat = Field("A", description="A: with timestamp, B: without timestamp")
+
+
+class BatchCreateTaskResponse(BaseModel):
+    """批量创建任务响应"""
+    task_ids: List[str] = Field(..., description="创建的任务ID列表")
+    count: int = Field(..., description="创建的任务数量")
 
 
 class CreateTaskResponse(BaseModel):

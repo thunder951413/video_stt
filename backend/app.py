@@ -8,12 +8,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .models import CreateTaskRequest, CreateTaskResponse, TaskStatusResponse, RenameContextRequest
-from .tasks import create_task, get_task_status, get_task_file_path, list_task_files
+from .models import CreateTaskRequest, CreateTaskResponse, TaskStatusResponse, RenameContextRequest, BatchCreateTaskRequest, BatchCreateTaskResponse
+from .tasks import create_task, get_task_status, get_task_file_path, list_task_files, create_batch_tasks
 from .contexts import list_contexts, rename_context, delete_context, DATA_DIR
 from .config_store import load_config, save_config
 from .llm_api import router as llm_router
 from .bili_list_api import router as bili_list_router
+from .douyin_list_api import router as douyin_list_router
 
 APP_ROOT = os.path.dirname(os.path.dirname(__file__))
 FRONTEND_DIR = os.path.join(APP_ROOT, "frontend")
@@ -23,6 +24,7 @@ app = FastAPI(title="Bilibili Video Transcriber")
 # Routers
 app.include_router(llm_router)
 app.include_router(bili_list_router)
+app.include_router(douyin_list_router)
 
 
 @app.post("/api/tasks", response_model=CreateTaskResponse)
@@ -32,6 +34,19 @@ def api_create_task(req: CreateTaskRequest):
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to create task")
     return CreateTaskResponse(task_id=task_id)
+
+
+@app.post("/api/tasks/batch", response_model=BatchCreateTaskResponse)
+def api_create_batch_tasks(req: BatchCreateTaskRequest):
+    """批量创建任务"""
+    if not req.urls:
+        raise HTTPException(status_code=400, detail="urls 列表不能为空")
+
+    task_ids = create_batch_tasks(req)
+    if not task_ids:
+        raise HTTPException(status_code=500, detail="创建任务失败")
+
+    return BatchCreateTaskResponse(task_ids=task_ids, count=len(task_ids))
 
 
 @app.get("/api/tasks/{task_id}", response_model=TaskStatusResponse)

@@ -7,9 +7,10 @@ import threading
 import time
 import subprocess
 import shutil
+import uuid
 from typing import Optional, Dict, Any, List
 
-from .models import CreateTaskRequest, TaskStatusResponse
+from .models import CreateTaskRequest, TaskStatusResponse, BatchCreateTaskRequest
 from . import bili_downloader
 from . import xiaoyuzhou_downloader
 from . import douyin_downloader
@@ -307,3 +308,41 @@ def _run_task(task_id: str, req: CreateTaskRequest, lock: threading.Lock) -> Non
         except Exception as e:
             _write_status(task_id, status="error", step="error", progress=1.0, message=str(e))
             upsert_context(task_id, status="error", url=req.url, source_title=title)
+
+
+def create_batch_tasks(req: BatchCreateTaskRequest) -> List[str]:
+    """
+    批量创建任务
+
+    参数：
+    - req: BatchCreateTaskRequest，包含 urls 列表和共享配置
+
+    返回：
+    - task_ids: 创建的任务 ID 列表
+    """
+    task_ids: List[str] = []
+
+    for url in req.urls:
+        if not url.strip():
+            continue
+
+        task_id = str(uuid.uuid4())
+
+        # 创建单个任务请求，共享批量配置
+        single_req = CreateTaskRequest(
+            url=url.strip(),
+            platform=req.platform,
+            download_mode=req.download_mode,
+            parts_mode=req.parts_mode,
+            cookies_from_browser=req.cookies_from_browser,
+            whisper_model=req.whisper_model,
+            language=req.language,
+            output_format=req.output_format,
+        )
+
+        # 创建任务
+        ok = create_task(task_id=task_id, req=single_req)
+        if ok:
+            task_ids.append(task_id)
+
+    return task_ids
