@@ -150,6 +150,23 @@ python3 -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 2. 确保已登录抖音并配置浏览器Cookie
 3. 优先使用公开可见的视频
 
+### 抖音 UP 主批量下载
+
+支持获取抖音 UP 主发布的所有视频列表，批量下载转写：
+
+**使用步骤：**
+1. 选择"抖音"平台
+2. 输入 UP 主主页链接，格式如：`https://www.douyin.com/user/用户ID`
+3. 点击"获取UP主视频列表"按钮
+4. 在弹出的对话框中选择要下载的视频（支持全选/取消全选）
+5. 点击"开始批量下载"
+
+**注意事项：**
+- 首次使用需要安装 playwright 浏览器：`playwright install chromium`
+- 由于抖音反爬机制，可能需要多次尝试或等待一段时间
+- 建议配置浏览器 Cookie 以提高成功率
+- 单次最多获取 100 个视频
+
 ## 📖 使用指南
 
 ### 转写视频
@@ -207,12 +224,14 @@ bilibili_summarizer/
 | 端点 | 方法 | 描述 |
 |------|------|------|
 | `/api/tasks` | POST | 创建转写任务 |
+| `/api/tasks/batch` | POST | 批量创建转写任务 |
 | `/api/tasks/{id}` | GET | 获取任务状态 |
 | `/api/tasks/{id}/files` | GET | 列出任务文件 |
 | `/api/tasks/{id}/download` | GET | 下载文件 |
 | `/api/contexts` | GET | 列出历史任务 |
 | `/api/llm/rewrite` | POST | AI 改写（SSE 流式） |
-| `/api/bili/list` | GET | 获取 UP 主视频列表 |
+| `/api/bili/list` | GET | 获取 B 站 UP 主视频列表 |
+| `/api/douyin/user/videos` | GET | 获取抖音 UP 主视频列表 |
 
 ## 📝 输出格式
 

@@ -607,6 +607,30 @@
       </div>
     </div>
 
+    <!-- 视频选择弹窗 -->
+    <div class="modal-overlay" id="videoSelectOverlay">
+      <div class="modal" style="width: 600px; max-width: 95vw; max-height: 90vh;">
+        <div class="modal-header">
+          <div class="modal-title">选择要下载的视频</div>
+          <button class="secondary" id="videoSelectCloseBtn" type="button">关闭</button>
+        </div>
+        <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+          <div style="margin-bottom: 10px;">
+            <button class="secondary" id="selectAllVideosBtn" type="button">全选</button>
+            <button class="secondary" id="deselectAllVideosBtn" type="button">取消全选</button>
+            <span style="margin-left: 10px; color: #666;">已选择：<span id="selectedCount">0</span> 个视频</span>
+          </div>
+          <div id="videoListContainer" style="max-height: 400px; overflow-y: auto;">
+            <!-- 视频列表将在这里动态生成 -->
+            <div style="text-align: center; color: #666; padding: 20px;">加载中...</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="startBatchDownloadBtn" type="button">开始批量下载</button>
+        </div>
+      </div>
+    </div>
+
     <div class="layout">
       <!-- LEFT DRAWER -->
       <div class="drawer left expanded" id="leftDrawer">
@@ -695,6 +719,13 @@
 </div>
 
           <button id="startBtn" type="button">开始转写</button>
+
+          <!-- 抖音批量下载区域 -->
+          <div id="douyin_batch_section" style="display: none; margin-top: 12px; padding: 10px; background: #f0f7ff; border: 1px solid #b3d4fc; border-radius: 6px;">
+            <h2 style="margin-top: 0;">批量下载</h2>
+            <button class="secondary" id="fetchDouyinUserBtn" type="button">获取UP主视频列表</button>
+            <small style="display: block; margin-top: 6px; color: #666;">输入用户主页链接后点击此按钮，获取该UP主的所有视频</small>
+          </div>
 
 <h2>任务状态</h2>
           <div id="status" class="status-text"></div>
@@ -1334,6 +1365,14 @@
         // Default to p1 for platforms that don't support parts
         document.querySelector('input[name="parts_mode"][value="p1"]').checked = true;
       }
+
+      // Show/hide douyin batch download section
+      const douyinBatchSection = document.getElementById('douyin_batch_section');
+      if (platform === 'douyin') {
+        douyinBatchSection.style.display = 'block';
+      } else {
+        douyinBatchSection.style.display = 'none';
+      }
     }
 
     platformSelect.addEventListener('change', () => {
@@ -1968,6 +2007,206 @@
         console.error(err);
         alert('保存配置失败: ' + err);
       });
+    });
+
+    // ============ 抖音批量下载功能 ============
+    const videoSelectOverlay = document.getElementById('videoSelectOverlay');
+    const videoSelectCloseBtn = document.getElementById('videoSelectCloseBtn');
+    const fetchDouyinUserBtn = document.getElementById('fetchDouyinUserBtn');
+    const videoListContainer = document.getElementById('videoListContainer');
+    const selectAllVideosBtn = document.getElementById('selectAllVideosBtn');
+    const deselectAllVideosBtn = document.getElementById('deselectAllVideosBtn');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const startBatchDownloadBtn = document.getElementById('startBatchDownloadBtn');
+
+    let douyinVideoList = []; // 存储获取到的视频列表
+
+    function openVideoSelectModal() {
+      videoSelectOverlay.classList.add('visible');
+    }
+
+    function closeVideoSelectModal() {
+      videoSelectOverlay.classList.remove('visible');
+    }
+
+    function updateSelectedCount() {
+      const checkboxes = videoListContainer.querySelectorAll('input[type="checkbox"]:checked');
+      selectedCountSpan.textContent = checkboxes.length;
+    }
+
+    // 获取抖音UP主视频列表
+    fetchDouyinUserBtn.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        alert('请先输入抖音用户主页链接');
+        return;
+      }
+
+      // 检查是否是用户主页链接
+      if (!url.includes('/user/') && !url.includes('sec_user_id')) {
+        alert('请输入抖音用户主页链接，格式如：https://www.douyin.com/user/用户ID');
+        return;
+      }
+
+      fetchDouyinUserBtn.disabled = true;
+      fetchDouyinUserBtn.textContent = '获取中...';
+      videoListContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">正在获取视频列表，请稍候...</div>';
+
+      try {
+        const limit = 50;
+        const resp = await fetch(`/api/douyin/user/videos?url=${encodeURIComponent(url)}&limit=${limit}`);
+        if (!resp.ok) {
+          const errorData = await resp.json();
+          throw new Error(errorData.detail || '获取视频列表失败');
+        }
+
+        const data = await resp.json();
+        douyinVideoList = data.items || [];
+
+        if (douyinVideoList.length === 0) {
+          videoListContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">未找到视频</div>';
+        } else {
+          renderVideoList(douyinVideoList);
+          openVideoSelectModal();
+        }
+      } catch (err) {
+        console.error(err);
+        alert('获取视频列表失败: ' + err.message);
+        videoListContainer.innerHTML = '<div style="text-align: center; color: #d92d20; padding: 20px;">获取失败</div>';
+      } finally {
+        fetchDouyinUserBtn.disabled = false;
+        fetchDouyinUserBtn.textContent = '获取UP主视频列表';
+      }
+    });
+
+    // 渲染视频列表
+    function renderVideoList(videos) {
+      videoListContainer.innerHTML = '';
+
+      videos.forEach((video, index) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; align-items: flex-start; padding: 8px; border-bottom: 1px solid #eee; gap: 10px;';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `video_${index}`;
+        checkbox.value = video.url;
+        checkbox.style.marginTop = '3px';
+        checkbox.addEventListener('change', updateSelectedCount);
+
+        const label = document.createElement('label');
+        label.htmlFor = `video_${index}`;
+        label.style.cssText = 'flex: 1; cursor: pointer;';
+
+        const title = document.createElement('div');
+        title.style.cssText = 'font-size: 13px; word-break: break-all;';
+        title.textContent = video.title || '(无标题)';
+
+        const meta = document.createElement('div');
+        meta.style.cssText = 'font-size: 11px; color: #666; margin-top: 4px;';
+
+        // 格式化时间
+        let timeStr = '';
+        if (video.create_time) {
+          const date = new Date(video.create_time * 1000);
+          timeStr = date.toLocaleDateString('zh-CN');
+        }
+
+        const stats = [];
+        if (video.like_count) stats.push(`👍 ${(video.like_count/1000).toFixed(1)}k`);
+        if (video.comment_count) stats.push(`💬 ${(video.comment_count/1000).toFixed(1)}k`);
+        if (video.author) stats.push(`@${video.author}`);
+
+        meta.textContent = [timeStr, ...stats].filter(Boolean).join(' | ');
+
+        label.appendChild(title);
+        label.appendChild(meta);
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        videoListContainer.appendChild(div);
+      });
+
+      updateSelectedCount();
+    }
+
+    // 全选
+    selectAllVideosBtn.addEventListener('click', () => {
+      const checkboxes = videoListContainer.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = true);
+      updateSelectedCount();
+    });
+
+    // 取消全选
+    deselectAllVideosBtn.addEventListener('click', () => {
+      const checkboxes = videoListContainer.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = false);
+      updateSelectedCount();
+    });
+
+    // 关闭弹窗
+    videoSelectCloseBtn.addEventListener('click', closeVideoSelectModal);
+
+    // 开始批量下载
+    startBatchDownloadBtn.addEventListener('click', async () => {
+      const checkboxes = videoListContainer.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedUrls = Array.from(checkboxes).map(cb => cb.value);
+
+      if (selectedUrls.length === 0) {
+        alert('请至少选择一个视频');
+        return;
+      }
+
+      if (!confirm(`确定要下载 ${selectedUrls.length} 个视频吗？\n\n这将创建 ${selectedUrls.length} 个独立的转写任务。`)) {
+        return;
+      }
+
+      startBatchDownloadBtn.disabled = true;
+      startBatchDownloadBtn.textContent = '创建任务中...';
+
+      try {
+        const download_mode = getSelected('download_mode');
+        const parts_mode = getSelected('parts_mode');
+        const whisper_model = document.getElementById('whisper_model').value;
+        const output_format = document.getElementById('output_format').value;
+        const cookies_from_browser = document.getElementById('cookies_from_browser').value.trim();
+
+        const payload = {
+          urls: selectedUrls,
+          platform: 'douyin',
+          download_mode,
+          parts_mode,
+          whisper_model,
+          output_format,
+          cookies_from_browser: cookies_from_browser || null,
+          language: 'zh'
+        };
+
+        const resp = await fetch('/api/tasks/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          const errorData = await resp.json();
+          throw new Error(errorData.detail || '创建任务失败');
+        }
+
+        const data = await resp.json();
+        closeVideoSelectModal();
+        alert(`成功创建 ${data.count} 个任务！\n\n任务 ID：${data.task_ids.slice(0, 3).join(', ')}${data.task_ids.length > 3 ? '...' : ''}`);
+
+        // 刷新历史列表
+        await loadContexts();
+
+      } catch (err) {
+        console.error(err);
+        alert('创建批量任务失败: ' + err.message);
+      } finally {
+        startBatchDownloadBtn.disabled = false;
+        startBatchDownloadBtn.textContent = '开始批量下载';
+      }
     });
 
     // init
