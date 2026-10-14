@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(find . -maxdepth 2 -type f -name *.py -o -name *.js -o -name *.ts -o -name *.json)",
+      "Bash(yt-dlp --list-extractors)",
+      "Bash(yt-dlp --extractor-help)",
+      "Bash(yt-dlp -v \"https://www.douyin.com/user/MS4wLjABAAAA...\")",
+      "Bash(yt-dlp:*)",
+      "Bash(pip show:*)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(pip install:*)",
+      "Bash(playwright install:*)",
+      "Bash(curl -s \"http://localhost:8000/docs\")",
+      "Bash(curl -s http://localhost:8000/openapi.json)",
+      "Bash(pkill -f \"uvicorn backend.app:app\")"
     ]
   }
 }
